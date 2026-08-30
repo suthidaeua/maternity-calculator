@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>คำนวณระยะรอคอยและวันคลอด - ประกันคลอดบุตร</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Sarabun', 'Segoe UI', sans-serif;
+    background: #f4f6f8;
+    margin: 0;
+    padding: 24px;
+    color: #1f2937;
+  }
+  .card {
+    max-width: 560px;
+    margin: 0 auto 20px;
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; color: #0f172a; }
+  h2 { font-size: 16px; margin: 0 0 4px; color: #0f172a; }
+  .sub { color: #64748b; font-size: 13.5px; margin-bottom: 8px; }
+  .step-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px; height: 22px;
+    background: #1d4ed8;
+    color: #fff;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 700;
+    margin-right: 8px;
+  }
+  .step-title { display: flex; align-items: center; margin-bottom: 4px; }
+  label {
+    display: block;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 6px;
+    margin-top: 16px;
+  }
+  input[type="date"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+  }
+  .result {
+    margin-top: 18px;
+    padding: 16px;
+    border-radius: 10px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    display: none;
+  }
+  .result.show { display: block; }
+  .result .label { font-size: 13px; color: #475569; margin: 0 0 4px; font-weight: 500; }
+  .result .date { font-size: 19px; font-weight: 700; color: #1d4ed8; margin: 0 0 10px; }
+  .result .date:last-child { margin-bottom: 0; }
+  .divider { border: none; border-top: 1px solid #e2e8f0; margin: 20px 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .status-box {
+    margin-top: 18px;
+    padding: 16px;
+    border-radius: 10px;
+    display: none;
+  }
+  .status-box.show { display: block; }
+  .status-box .headline {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 10px;
+  }
+  .check-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 0;
+    font-size: 14px;
+    border-bottom: 1px dashed rgba(0,0,0,0.08);
+  }
+  .check-row:last-child { border-bottom: none; }
+  .badge {
+    display: inline-block;
+    font-size: 12px;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .ok { background: #dcfce7; color: #15803d; }
+  .bad { background: #fee2e2; color: #b91c1c; }
+  .status-covered { background: #f0fdf4; border: 1px solid #bbf7d0; }
+  .status-not-covered { background: #fef2f2; border: 1px solid #fecaca; }
+  .note { font-size: 12.5px; color: #94a3b8; margin-top: 20px; line-height: 1.7; }
+  .quick-btns { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .quick-btn {
+    padding: 6px 12px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    border-radius: 999px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    color: #334155;
+  }
+  .quick-btn:hover { background: #e2e8f0; }
+  .quick-btn.active { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="step-title"><span class="step-badge">1</span><h2>ข้อมูลกรมธรรม์</h2></div>
+  <p class="sub">ระยะรอคอยกรณีคลอดบุตร 280 วัน นับจากวันที่กรมธรรม์เริ่มมีผลบังคับ</p>
+
+  <label for="startDate">วันที่กรมธรรม์เริ่มมีผลบังคับ</label>
+  <input type="date" id="startDate">
+
+  <div class="result" id="mainResult">
+    <p class="label">ครบระยะรอคอย 90 วัน (แท้งบุตร / ขูดมดลูก / ท้องนอกมดลูก) ในวันที่</p>
+    <p class="date" id="endDate90">-</p>
+    <p class="label">ครบระยะรอคอย 280 วัน (คลอดบุตร) ในวันที่</p>
+    <p class="date" id="endDate">-</p>
+    <p class="label">ปีกรมธรรม์ปีแรกสิ้นสุดวันที่ (ก่อนวันครบรอบปีถัดไป)</p>
+    <p class="date" id="policyYearEnd">-</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="step-title"><span class="step-badge">2</span><h2>คาดการณ์วันคลอด (EDD)</h2></div>
+  <p class="sub">คำนวณแบบ Naegele's Rule: วันแรกของประจำเดือนครั้งสุดท้าย (LMP) + 280 วัน</p>
+
+  <label for="lmpDate">วันแรกของประจำเดือนครั้งสุดท้าย (LMP)</label>
+  <input type="date" id="lmpDate">
+
+  <div class="result" id="eddResult">
+    <p class="label">วันคาดว่าจะคลอด (กำหนดคลอดตามธรรมชาติ)</p>
+    <p class="date" id="eddDate">-</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="step-title"><span class="step-badge">3</span><h2>จำลองวันคลอดจริง</h2></div>
+  <p class="sub">เลือกวันที่เกิดเหตุการณ์จริง (คลอด / แท้งบุตร / ขูดมดลูก / ผ่าตัดท้องนอกมดลูก) เพื่อตรวจสอบความคุ้มครอง</p>
+
+  <label for="actualDate">วันที่คลอด หรือวันที่เกิดเหตุ (แท้งบุตร/ขูดมดลูก/ท้องนอกมดลูก)</label>
+  <input type="date" id="actualDate">
+  <div class="quick-btns" id="quickBtns"></div>
+
+  <div class="status-box" id="statusBox">
+    <p class="headline" id="statusHeadline">-</p>
+    <div class="check-row">
+      <span>พ้นระยะรอคอย 90 วัน (แท้ง/ขูดมดลูก/ท้องนอกมดลูก) หรือยัง</span>
+      <span class="badge" id="wait90Badge">-</span>
+    </div>
+    <div class="check-row">
+      <span>พ้นระยะรอคอย 280 วัน (คลอดบุตร) หรือยัง</span>
+      <span class="badge" id="waitBadge">-</span>
+    </div>
+    <div class="check-row">
+      <span>อยู่ในปีกรมธรรม์ปีแรกหรือไม่</span>
+      <span class="badge" id="yearBadge">-</span>
+    </div>
+    <div class="check-row">
+      <span>คลอดก่อนกำหนด (เทียบ EDD)</span>
+      <span class="badge" id="earlyBadge">-</span>
+    </div>
+  </div>
+
+  <p class="note">
+    * ระยะรอคอย 280 วัน (กรณีคลอดบุตร) และ 90 วัน (กรณีแท้งบุตร/ขูดมดลูก/ผ่าตัดท้องนอกมดลูก) นับต่อเนื่องจากวันที่กรมธรรม์เริ่มมีผลบังคับ<br>
+    * ปีกรมธรรม์ปีแรก คือช่วง 365 วันแรกนับจากวันเริ่มมีผลบังคับ (ก่อนวันครบรอบปีต่ออายุ)<br>
+    * วันคาดคลอด (EDD) คำนวณจากหลักการทางการแพทย์ทั่วไป (LMP + 280 วัน) เป็นเพียงการประมาณการ ไม่ใช่วันที่แน่นอน<br>
+    * ผลการคำนวณนี้เป็นเครื่องมือช่วยประมาณการเบื้องต้นเท่านั้น เงื่อนไขความคุ้มครองที่แท้จริงให้ยึดตามกรมธรรม์
+  </p>
+</div>
+
+<script>
+const startInput = document.getElementById('startDate');
+const lmpInput = document.getElementById('lmpDate');
+const actualInput = document.getElementById('actualDate');
+
+const mainResult = document.getElementById('mainResult');
+const endDateEl = document.getElementById('endDate');
+const endDate90El = document.getElementById('endDate90');
+const policyYearEndEl = document.getElementById('policyYearEnd');
+
+const eddResult = document.getElementById('eddResult');
+const eddDateEl = document.getElementById('eddDate');
+
+const statusBox = document.getElementById('statusBox');
+const statusHeadline = document.getElementById('statusHeadline');
+const waitBadge = document.getElementById('waitBadge');
+const wait90Badge = document.getElementById('wait90Badge');
+const yearBadge = document.getElementById('yearBadge');
+const earlyBadge = document.getElementById('earlyBadge');
+const quickBtns = document.getElementById('quickBtns');
+
+const thMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+function formatThaiDate(d) {
+  const day = d.getDate();
+  const month = thMonths[d.getMonth()];
+  const year = d.getFullYear() + 543;
+  const weekday = ['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'][d.getDay()];
+  return `${weekday} ${day} ${month} ${year}`;
+}
+function addDays(date, days) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+function daysBetween(a, b) {
+  return Math.round((b - a) / (1000 * 60 * 60 * 24));
+}
+
+let waitEndDate = null;
+let waitEndDate90 = null;
+let policyYearEnd = null;
+let eddDate = null;
+
+function calcPolicy() {
+  if (!startInput.value) {
+    mainResult.classList.remove('show');
+    waitEndDate = null;
+    waitEndDate90 = null;
+    policyYearEnd = null;
+    updateStatus();
+    return;
+  }
+  const start = new Date(startInput.value + 'T00:00:00');
+  waitEndDate = addDays(start, 280);
+  waitEndDate90 = addDays(start, 90);
+  policyYearEnd = addDays(start, 364);
+  endDateEl.textContent = formatThaiDate(waitEndDate);
+  endDate90El.textContent = formatThaiDate(waitEndDate90);
+  policyYearEndEl.textContent = formatThaiDate(policyYearEnd);
+  mainResult.classList.add('show');
+  updateStatus();
+}
+
+function calcEdd() {
+  if (!lmpInput.value) {
+    eddResult.classList.remove('show');
+    eddDate = null;
+    buildQuickButtons();
+    updateStatus();
+    return;
+  }
+  const lmp = new Date(lmpInput.value + 'T00:00:00');
+  eddDate = addDays(lmp, 280);
+  eddDateEl.textContent = formatThaiDate(eddDate);
+  eddResult.classList.add('show');
+  buildQuickButtons();
+  updateStatus();
+}
+
+function buildQuickButtons() {
+  quickBtns.innerHTML = '';
+  if (!eddDate) return;
+  const options = [
+    { label: 'ตามกำหนด', months: 0 },
+    { label: 'ก่อนกำหนด 1 เดือน', months: 1 },
+    { label: 'ก่อนกำหนด 2 เดือน', months: 2 },
+    { label: 'ก่อนกำหนด 3 เดือน', months: 3 },
+  ];
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'quick-btn';
+    btn.type = 'button';
+    btn.textContent = opt.label;
+    btn.addEventListener('click', () => {
+      const d = new Date(eddDate);
+      d.setMonth(d.getMonth() - opt.months);
+      actualInput.value = d.toISOString().slice(0, 10);
+      updateStatus();
+      [...quickBtns.children].forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+    quickBtns.appendChild(btn);
+  });
+}
+
+function updateStatus() {
+  if (!actualInput.value || !waitEndDate) {
+    statusBox.classList.remove('show');
+    return;
+  }
+  const actual = new Date(actualInput.value + 'T00:00:00');
+
+  const passedWait = actual >= waitEndDate;
+  waitBadge.textContent = passedWait ? 'พ้นระยะรอคอยแล้ว' : 'ยังอยู่ในระยะรอคอย';
+  waitBadge.className = 'badge ' + (passedWait ? 'ok' : 'bad');
+
+  const passedWait90 = waitEndDate90 ? actual >= waitEndDate90 : false;
+  wait90Badge.textContent = passedWait90 ? 'พ้นระยะรอคอยแล้ว' : 'ยังอยู่ในระยะรอคอย';
+  wait90Badge.className = 'badge ' + (passedWait90 ? 'ok' : 'bad');
+
+  let withinYear = null;
+  if (policyYearEnd) {
+    withinYear = actual <= policyYearEnd;
+    yearBadge.textContent = withinYear ? 'อยู่ในปีกรมธรรม์ปีแรก' : 'เกินปีกรมธรรม์ปีแรก';
+    yearBadge.className = 'badge ' + (withinYear ? 'ok' : 'bad');
+  } else {
+    yearBadge.textContent = 'ยังไม่ระบุวันเริ่มกรมธรรม์';
+    yearBadge.className = 'badge bad';
+  }
+
+  if (eddDate) {
+    const diff = daysBetween(actual, eddDate);
+    if (diff > 0) {
+      earlyBadge.textContent = `ก่อนกำหนด ${diff} วัน`;
+      earlyBadge.className = 'badge bad';
+    } else if (diff < 0) {
+      earlyBadge.textContent = `หลังกำหนด ${Math.abs(diff)} วัน`;
+      earlyBadge.className = 'badge ok';
+    } else {
+      earlyBadge.textContent = 'ตรงวันกำหนดคลอด';
+      earlyBadge.className = 'badge ok';
+    }
+  } else {
+    earlyBadge.textContent = 'ยังไม่ระบุ LMP';
+    earlyBadge.className = 'badge bad';
+  }
+
+  statusBox.classList.add('show');
+  if (passedWait) {
+    statusHeadline.textContent = '✅ เข้าเงื่อนไขความคุ้มครอง (พ้นระยะรอคอยแล้ว)';
+    statusBox.className = 'status-box show status-covered';
+  } else {
+    statusHeadline.textContent = '⚠️ ยังไม่เข้าเงื่อนไขความคุ้มครอง (อยู่ในระยะรอคอย)';
+    statusBox.className = 'status-box show status-not-covered';
+  }
+}
+
+startInput.addEventListener('change', calcPolicy);
+lmpInput.addEventListener('change', calcEdd);
+actualInput.addEventListener('change', () => {
+  [...quickBtns.children].forEach(b => b.classList.remove('active'));
+  updateStatus();
+});
+</script>
+
+</body>
+</html>
