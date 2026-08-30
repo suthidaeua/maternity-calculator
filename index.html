@@ -168,6 +168,10 @@
       <span>อยู่ในปีกรมธรรม์ปีแรกหรือไม่</span>
       <span class="badge" id="yearBadge">-</span>
     </div>
+    <div class="check-row" id="renewalRow" style="display:none;">
+      <span>สถานะ</span>
+      <span class="badge ok">🔄 ต่ออายุประกันปีที่ 2 คุ้มครองต่อเนื่อง</span>
+    </div>
     <div class="check-row">
       <span>คลอดก่อนกำหนด (เทียบ EDD)</span>
       <span class="badge" id="earlyBadge">-</span>
@@ -200,6 +204,7 @@ const statusHeadline = document.getElementById('statusHeadline');
 const waitBadge = document.getElementById('waitBadge');
 const wait90Badge = document.getElementById('wait90Badge');
 const yearBadge = document.getElementById('yearBadge');
+const renewalRow = document.getElementById('renewalRow');
 const earlyBadge = document.getElementById('earlyBadge');
 const quickBtns = document.getElementById('quickBtns');
 
@@ -307,9 +312,17 @@ function updateStatus() {
     withinYear = actual <= policyYearEnd;
     yearBadge.textContent = withinYear ? 'อยู่ในปีกรมธรรม์ปีแรก' : 'เกินปีกรมธรรม์ปีแรก';
     yearBadge.className = 'badge ' + (withinYear ? 'ok' : 'bad');
+
+    // ถ้าเกินปีกรมธรรม์ปีแรก แต่พ้นระยะรอคอยแล้ว = ต่ออายุปีที่ 2 คุ้มครองต่อเนื่อง
+    if (!withinYear && passedWait) {
+      renewalRow.style.display = 'flex';
+    } else {
+      renewalRow.style.display = 'none';
+    }
   } else {
     yearBadge.textContent = 'ยังไม่ระบุวันเริ่มกรมธรรม์';
     yearBadge.className = 'badge bad';
+    renewalRow.style.display = 'none';
   }
 
   if (eddDate) {
