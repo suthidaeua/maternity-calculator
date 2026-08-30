@@ -135,10 +135,28 @@
 
 <div class="card">
   <div class="step-title"><span class="step-badge">2</span><h2>คาดการณ์วันคลอด (EDD)</h2></div>
-  <p class="sub">คำนวณแบบ Naegele's Rule: วันแรกของประจำเดือนครั้งสุดท้าย (LMP) + 280 วัน</p>
+  <p class="sub">คำนวณแบบ Naegele's Rule: วันแรกของประจำเดือนครั้งสุดท้าย (LMP) + 280 วัน หรือคำนวณจากวันย้ายตัวอ่อน (กรณีทำเด็กหลอดแก้ว)</p>
 
-  <label for="lmpDate">วันแรกของประจำเดือนครั้งสุดท้าย (LMP)</label>
-  <input type="date" id="lmpDate">
+  <div class="quick-btns" id="eddModeBtns" style="margin-top:12px;">
+    <button type="button" class="quick-btn active" data-mode="lmp">ประจำเดือนครั้งสุดท้าย (LMP)</button>
+    <button type="button" class="quick-btn" data-mode="embryo">วันย้ายตัวอ่อน (Embryo Transfer)</button>
+  </div>
+
+  <div id="lmpFields">
+    <label for="lmpDate">วันแรกของประจำเดือนครั้งสุดท้าย (LMP)</label>
+    <input type="date" id="lmpDate">
+  </div>
+
+  <div id="embryoFields" style="display:none;">
+    <label for="embryoDate">วันที่ย้ายตัวอ่อน</label>
+    <input type="date" id="embryoDate">
+
+    <label for="embryoDay" style="margin-top:14px;">ชนิดตัวอ่อนที่ย้าย</label>
+    <div class="quick-btns" id="embryoDayBtns">
+      <button type="button" class="quick-btn active" data-day="3">ตัวอ่อนวันที่ 3 (Day-3)</button>
+      <button type="button" class="quick-btn" data-day="5">ตัวอ่อนวันที่ 5 (Blastocyst)</button>
+    </div>
+  </div>
 
   <div class="result" id="eddResult">
     <p class="label">วันคาดว่าจะคลอด (กำหนดคลอดตามธรรมชาติ)</p>
@@ -148,10 +166,13 @@
 
 <div class="card">
   <div class="step-title"><span class="step-badge">3</span><h2>จำลองวันคลอดจริง</h2></div>
-  <p class="sub">เลือกวันที่เกิดเหตุการณ์จริง (คลอด / แท้งบุตร / ขูดมดลูก / ผ่าตัดท้องนอกมดลูก) เพื่อตรวจสอบความคุ้มครอง</p>
 
   <label for="actualDate">วันที่คลอด หรือวันที่เกิดเหตุ (แท้งบุตร/ขูดมดลูก/ท้องนอกมดลูก)</label>
   <input type="date" id="actualDate">
+
+  <p style="font-size:12.5px; color:#94a3b8; margin:10px 0 6px;">
+    ⚡ หรือกดปุ่มด่วนด้านล่าง เพื่อให้ระบบคำนวณวันที่ให้อัตโนมัติจากวันคาดคลอด (EDD) ที่กรอกไว้ในขั้นตอนที่ 2
+  </p>
   <div class="quick-btns" id="quickBtns"></div>
 
   <div class="status-box" id="statusBox">
@@ -181,7 +202,7 @@
   <p class="note">
     * ระยะรอคอย 280 วัน (กรณีคลอดบุตร) และ 90 วัน (กรณีแท้งบุตร/ขูดมดลูก/ผ่าตัดท้องนอกมดลูก) นับต่อเนื่องจากวันที่กรมธรรม์เริ่มมีผลบังคับ<br>
     * ปีกรมธรรม์ปีแรก คือช่วง 365 วันแรกนับจากวันเริ่มมีผลบังคับ (ก่อนวันครบรอบปีต่ออายุ)<br>
-    * วันคาดคลอด (EDD) คำนวณจากหลักการทางการแพทย์ทั่วไป (LMP + 280 วัน) เป็นเพียงการประมาณการ ไม่ใช่วันที่แน่นอน<br>
+    * วันคาดคลอด (EDD) คำนวณจากหลักการทางการแพทย์ทั่วไป — กรณี LMP ใช้ LMP + 280 วัน, กรณีย้ายตัวอ่อนใช้วันย้ายตัวอ่อน + 263 วัน (Day-3) หรือ + 261 วัน (Day-5/Blastocyst) เป็นเพียงการประมาณการ ไม่ใช่วันที่แน่นอน<br>
     * ผลการคำนวณนี้เป็นเครื่องมือช่วยประมาณการเบื้องต้นเท่านั้น เงื่อนไขความคุ้มครองที่แท้จริงให้ยึดตามกรมธรรม์
   </p>
 </div>
@@ -189,6 +210,11 @@
 <script>
 const startInput = document.getElementById('startDate');
 const lmpInput = document.getElementById('lmpDate');
+const embryoInput = document.getElementById('embryoDate');
+const eddModeBtns = document.getElementById('eddModeBtns');
+const lmpFields = document.getElementById('lmpFields');
+const embryoFields = document.getElementById('embryoFields');
+const embryoDayBtns = document.getElementById('embryoDayBtns');
 const actualInput = document.getElementById('actualDate');
 
 const mainResult = document.getElementById('mainResult');
@@ -250,30 +276,83 @@ function calcPolicy() {
   updateStatus();
 }
 
+let eddMode = 'lmp';
+let embryoDay = 3;
+
 function calcEdd() {
-  if (!lmpInput.value) {
-    eddResult.classList.remove('show');
-    eddDate = null;
-    buildQuickButtons();
-    updateStatus();
-    return;
+  let base = null;
+  let addDaysCount = 0;
+
+  if (eddMode === 'lmp') {
+    if (!lmpInput.value) {
+      eddResult.classList.remove('show');
+      eddDate = null;
+      buildQuickButtons();
+      updateStatus();
+      return;
+    }
+    base = new Date(lmpInput.value + 'T00:00:00');
+    addDaysCount = 280;
+  } else {
+    if (!embryoInput.value) {
+      eddResult.classList.remove('show');
+      eddDate = null;
+      buildQuickButtons();
+      updateStatus();
+      return;
+    }
+    base = new Date(embryoInput.value + 'T00:00:00');
+    // Day-3 transfer: EDD = transfer date + 263 days
+    // Day-5 (blastocyst) transfer: EDD = transfer date + 261 days
+    addDaysCount = embryoDay === 5 ? 261 : 263;
   }
-  const lmp = new Date(lmpInput.value + 'T00:00:00');
-  eddDate = addDays(lmp, 280);
+
+  eddDate = addDays(base, addDaysCount);
   eddDateEl.textContent = formatThaiDate(eddDate);
   eddResult.classList.add('show');
   buildQuickButtons();
   updateStatus();
 }
 
+eddModeBtns.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-mode]');
+  if (!btn) return;
+  eddMode = btn.dataset.mode;
+  [...eddModeBtns.children].forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (eddMode === 'lmp') {
+    lmpFields.style.display = '';
+    embryoFields.style.display = 'none';
+  } else {
+    lmpFields.style.display = 'none';
+    embryoFields.style.display = '';
+  }
+  calcEdd();
+});
+
+embryoDayBtns.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-day]');
+  if (!btn) return;
+  embryoDay = parseInt(btn.dataset.day, 10);
+  [...embryoDayBtns.children].forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  calcEdd();
+});
+
 function buildQuickButtons() {
   quickBtns.innerHTML = '';
-  if (!eddDate) return;
+  if (!eddDate) {
+    const hint = document.createElement('p');
+    hint.style.cssText = 'font-size:12.5px; color:#cbd5e1; margin:0;';
+    hint.textContent = '(กรอกวันคาดคลอดในขั้นตอนที่ 2 ก่อน จึงจะใช้ปุ่มด่วนได้)';
+    quickBtns.appendChild(hint);
+    return;
+  }
   const options = [
-    { label: 'ตามกำหนด', months: 0 },
-    { label: 'ก่อนกำหนด 1 เดือน', months: 1 },
-    { label: 'ก่อนกำหนด 2 เดือน', months: 2 },
-    { label: 'ก่อนกำหนด 3 เดือน', months: 3 },
+    { label: 'คลอดตรงกำหนด (EDD)', months: 0 },
+    { label: 'คลอดก่อนกำหนด 1 เดือน', months: 1 },
+    { label: 'คลอดก่อนกำหนด 2 เดือน', months: 2 },
+    { label: 'คลอดก่อนกำหนด 3 เดือน', months: 3 },
   ];
   options.forEach(opt => {
     const btn = document.createElement('button');
@@ -354,10 +433,13 @@ function updateStatus() {
 
 startInput.addEventListener('change', calcPolicy);
 lmpInput.addEventListener('change', calcEdd);
+embryoInput.addEventListener('change', calcEdd);
 actualInput.addEventListener('change', () => {
-  [...quickBtns.children].forEach(b => b.classList.remove('active'));
+  [...quickBtns.children].forEach(b => b.classList && b.classList.remove('active'));
   updateStatus();
 });
+
+buildQuickButtons();
 </script>
 
 </body>
